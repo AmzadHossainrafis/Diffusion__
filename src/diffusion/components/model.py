@@ -1,10 +1,29 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
+from torchsummary import summary
 
 
 
 class SelfAttention(nn.Module):
+    """
+        SelfAttention class implements the self-attention mechanism, which is a key component in many modern deep learning models, 
+        particularly in the field of natural language processing.
+        Self-attention allows the model to focus on different parts of the input sequence when producing each element of the output sequence,
+        enabling it to handle long sequences more effectively.This class is a PyTorch module, which means it inherits from the nn.Module class. 
+        As such, it can be used as a component in larger models, and it benefits from PyTorch's automatic differentiation and GPU acceleration.
+
+        Methods
+        -------
+        forward(query, key, value):
+            Computes the output of the self-attention layer given the query, key, and value tensors.
+
+        Example usage:
+        --------------
+        attention = SelfAttention()
+        output = attention(query_tensor, key_tensor, value_tensor)
+    """
     def __init__(self, channels, size):
         super(SelfAttention, self).__init__()
         self.channels = channels
@@ -98,6 +117,32 @@ class Up(nn.Module):
 
 
 class UNet(nn.Module):
+    """
+    UNet is a convolutional neural network architecture commonly used for image segmentation tasks.
+    It consists of an encoder-decoder structure with skip connections between corresponding encoder and decoder layers.
+    The UNet class inherits from the nn.Module class in PyTorch.This kind of model is also used in diffusion models to generate images. 
+    with slight modifications to the architecture and the addition of self-attention layers and also adding time step position encoder .
+
+    Parameters
+    ----------
+    c_in : int, optional
+        Number of input channels, by default 3
+    c_out : int, optional
+        Number of output channels, by default 3
+    time_dim : int, optional
+        Dimension of the time encoding, by default 256
+    device : str, optional
+        Device to run the model on, by default "cuda"
+
+    
+    Methods
+    -------
+    pos_encoding(t, channels)
+        Generates a positional encoding for a given sequence length and dimensions.
+    forward(x, t)
+        Forward pass of the UNet model.
+    """
+
     def __init__(self, c_in=3, c_out=3, time_dim=256, device="cuda"):
         super().__init__()
         self.device = device
@@ -123,6 +168,24 @@ class UNet(nn.Module):
         self.outc = nn.Conv2d(64, c_out, kernel_size=1)
 
     def pos_encoding(self, t, channels):
+        """
+        Generates a positional encoding for a given sequence length and dimensions. 
+        Positional encoding is a way to represent the position of tokens in a sequence 
+        as dense vectors. It's used in transformer models to add information about 
+        the relative or absolute position of the tokens in the sequence.
+
+        Parameters
+        ----------
+        t : torch.Tensor
+            The time tensor of shape (batch_size, sequence_length)
+        channels : int
+            The dimension of the positional encoding, typically the dimensions of the model's hidden states.
+
+        Returns
+        -------
+        torch.Tensor
+            A tensor of shape (batch_size, sequence_length, channels) representing the positional encoding.
+        """
         inv_freq = 1.0 / (
             10000
             ** (torch.arange(0, channels, 2, device=self.device).float() / channels)
@@ -133,6 +196,21 @@ class UNet(nn.Module):
         return pos_enc
 
     def forward(self, x, t):
+        """
+        Forward pass of the UNet model.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            The input tensor of shape (batch_size, channels, height, width)
+        t : torch.Tensor
+            The time tensor of shape (batch_size, sequence_length)
+
+        Returns
+        -------
+        torch.Tensor
+            The output tensor of shape (batch_size, c_out, height, width)
+        """
         t = t.unsqueeze(-1).type(torch.float)
         t = self.pos_encoding(t, self.time_dim)
 
@@ -156,3 +234,5 @@ class UNet(nn.Module):
         x = self.sa6(x)
         output = self.outc(x)
         return output
+    
+
