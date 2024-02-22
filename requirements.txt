@@ -1,0 +1,9 @@
+pillow 
+flask
+numpy 
+torchsummary
+tqdm
+matplotlib 
+Albumentations
+
+
